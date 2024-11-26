@@ -1,8 +1,13 @@
-from flask import Flask, request, jsonify
-from models.user import User
-from database import db
-from flask_login import LoginManager, login_user, current_user, logout_user, login_required
+'''
+    Flask application - Authentication
+'''
+
 import bcrypt
+from flask import Flask, request, jsonify
+from flask_login import LoginManager
+from flask_login import login_user, current_user, logout_user, login_required
+from database import db
+from models.user import User
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret-key"
@@ -18,12 +23,25 @@ login_manager.login_view = "login"
 
 
 @login_manager.user_loader
-def user_loader(user_id):
+def user_loader(user_id) -> User:
+    """ Returns the current user object from the database
+
+    Args:
+        user_id (int): User id, primary key from User table
+
+    Returns:
+        User: User object for user_id
+    """
     return User.query.get(user_id)
 
 
 @app.route("/login", methods=["POST"])
 def login():
+    """ Handles the user login
+
+    Returns:
+        Response: JSON object containing success/fail message.
+    """
     data = request.json
     username = data.get("username")
     password = data.get("password")
@@ -34,7 +52,7 @@ def login():
 
         if user and bcrypt.checkpw(password.encode(), user.password.encode()):
             login_user(user)
-            return jsonify({"message": f"Authentication succeeded."})
+            return jsonify({"message": "Authentication succeeded."})
 
     return jsonify({"message": "Invalid credentials."}), 400
 
@@ -42,13 +60,23 @@ def login():
 @app.route("/logout", methods=["GET"])
 @login_required
 def logout():
+    """ Handles user log out
+
+    Returns:
+        Response: JSON object with success message.
+    """
     logout_user()
-    return jsonify({"message": f"User logged out."})
+    return jsonify({"message": "User logged out."})
 
 
 @app.route("/user", methods=["POST"])
 @login_required
 def create_user():
+    """ Creates a new user
+
+    Returns:
+        Response: JSON object with success/fail message.
+    """
     data = request.json
     username = data.get("username")
     password = data.get("password")
@@ -65,6 +93,14 @@ def create_user():
 @app.route("/user/<int:user_id>", methods=["GET"])
 @login_required
 def read_user(user_id):
+    """ Reads user information
+
+    Args:
+        user_id (int): User id, primary key from User table
+
+    Returns:
+        Response: JSON object with success/fail message.
+    """
     user = user_loader(user_id)
     if user:
         return jsonify({"username": user.username})
@@ -75,6 +111,14 @@ def read_user(user_id):
 @app.route("/user/<int:user_id>", methods=["PUT"])
 @login_required
 def update_user(user_id):
+    """ Updates user information
+
+    Args:
+        user_id (int): User id, primary key from User table
+
+    Returns:
+        Response: JSON object with success/fail message.
+    """
     data = request.json
     password = data.get("password")
 
@@ -94,6 +138,14 @@ def update_user(user_id):
 @app.route("/user/<int:user_id>", methods=["DELETE"])
 @login_required
 def delete_user(user_id):
+    """ Deletes user
+
+    Args:
+        user_id (int): User id, primary key from User table
+
+    Returns:
+        Response: JSON object with success/fail message.
+    """
     if user_id == current_user.id:
         return jsonify({"message": "Deletion not allowed."}), 403
 
